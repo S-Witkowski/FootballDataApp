@@ -1,0 +1,16 @@
+api_consumer:
+  requests_limit: 1
+  time_limit: 5
+  sleep_time: 5
+
+parser:
+  tables_to_scrape:
+    - summary
+    - passing
+    - possession
+    - misc
+
+integration_tests:
+  base_url: https://fbref.com/
+  data_test_url: https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures
+  test_match_id: 3a6836b4

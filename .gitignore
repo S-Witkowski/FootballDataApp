@@ -1,4 +1,5 @@
 .venv
+.vscode
 prototype.ipynb
 football_db_prod.db
-SCRIPTS/Scraper/__pycache__/
+**/__pycache__/

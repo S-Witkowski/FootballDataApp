@@ -10,7 +10,7 @@ Scraper's data scope is divided into two tables: matches and player_stats. To av
 2. SQL column name.
 3. Pydantic data model item.
    
-The downside of that solution is that if we want to add a new column to player_stats table we should check name of the corresponding data-stat from website, update pydantic datamodel, update sql table creating function and delete whole content of the table. 
+The downside of that solution is that if we want to add a new column to player_stats table we should check name of the corresponding data-stat from website, update pydantic datamodel and recreate DB or update it with new columns. 
 <br>
 <br>
 App contains requests limiter to prevent from straining the server - one request per 5 seconds.
@@ -49,7 +49,7 @@ Code below will get whole data for Champions League and Premier League from pres
         "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures"
         ]
     for url in urls:
-        s.scrape_data(url=url, clear_db=False, test=False)
+        s.scrape_data(url=url)
 ```
  
  
