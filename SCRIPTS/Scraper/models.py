@@ -67,4 +67,14 @@ class PlayerStats(pydantic.BaseModel):
         fields_list = list(cls.model_json_schema(alias).get("properties").keys())
         return dict(zip(fields_list, [None for i in fields_list]))
 
+class ParserTech(pydantic.BaseModel):
+    match_id: str 
+    player_id: Union[str, None] = None
+    parse_date: datetime.datetime
+    parse_type: str
+    error_msg: Union[str, None] = None
+    @classmethod
+    def get_empty_dict(cls, alias=False):
+        fields_list = list(cls.model_json_schema(alias).get("properties").keys())
+        return dict(zip(fields_list, [None for i in fields_list]))
 

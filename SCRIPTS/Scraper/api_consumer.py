@@ -13,6 +13,7 @@ class APIConsumer:
         self.request_count_per_batch = 0
         self.start_time = None
         self.api_calls = 0
+        self.last_api_call_data = None
 
     def call(self, url: str) -> requests.Response:
         if not self.start_time:
@@ -35,6 +36,7 @@ class APIConsumer:
         s.mount("https://", adapter)
         s.mount("http://", adapter)
 
+        self.last_api_call_data = datetime.datetime.now()
         resp = s.get(url, timeout=15, headers={"Content-Type": "text"})
         self.api_calls += 1
         self.request_count_per_batch += 1

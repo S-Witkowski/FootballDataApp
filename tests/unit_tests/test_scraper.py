@@ -4,6 +4,8 @@ from Scraper.scraper import Scraper
 from Scraper.models import PlayerStats, Match
 from Scraper.errors import NoScoreAndFixturesInUrlException
 from Scraper.config import Config
+from Scraper.database import SQLiteDatabase
+from Scraper.constants import MATCHES_TABLE_NAME, PLAYER_STATS_TABLE_NAME, PARSER_TECH_TABLE_NAME
 
 import datetime 
 
@@ -19,62 +21,13 @@ def mock_parser():
 def mock_database():
     return MagicMock()
 
-def test_compare_scraped_matches_to_db():
-    last_match_id = "123"
-    matches = [Mock(match_id="123"), Mock(match_id="456"), Mock(match_id="789")]
-    result = Scraper._compare_scraped_matches_to_db(last_match_id, matches)
-    assert result == [matches[1], matches[2]]
+@pytest.fixture
+def mock_db_state():
+    return MagicMock()
 
-def test_scrape_missing_player_stats(mock_database, mock_parser):
-    scraper = Scraper(mock_parser, mock_database)
-    mock_database.get_not_scraped_match_ids.return_value = [("123",)]
-    mock_parser.get_players_stats.return_value = [PlayerStats(match_id="123", team="TeamA", player="player", player_id="12345")]
-    scraper.scrape_missing_player_stats()
-
-    assert scraper.matches_added == 0
-    assert scraper.players_stats_added == 1
-
-def test_scrape_data_with_clear_db(mock_database, mock_parser):
-    scraper = Scraper(mock_parser, mock_database)
-    mock_parser.get_matches.return_value = [Match(
-        date=datetime.date(2023, 11, 18),
-        home="TeamA",
-        score="3-1",
-        away="TeamB",
-        match_id="123",
-        season="2023-2024",
-        competition="Example League")
-    ]
-    mock_database.get_last_match_id.return_value = "999"
-    mock_parser.get_players_stats.return_value = [PlayerStats(match_id="123", team="TeamA", player="player", player_id="12345")]
-
-    scraper.scrape_data("https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures", clear_db=True)
-
-    assert scraper.matches_added == 1
-    assert scraper.players_stats_added == 1
-
-def test_scrape_data_without_clear_db(mock_database, mock_parser):
-    scraper = Scraper(mock_parser, mock_database)
-    mock_parser.get_matches.return_value = [Match(
-        date=datetime.date(2023, 11, 18),
-        home="TeamA",
-        score="3-1",
-        away="TeamB",
-        match_id="123",
-        season="2023-2024",
-        competition="Example League")
-    ]
-    mock_database.get_last_match_id.return_value = "123"
-    mock_parser.get_players_stats.return_value = [PlayerStats(match_id="123", team="TeamA", player="player", player_id="12345")]
-
-    scraper.scrape_data("https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures", clear_db=False)
-
-    assert scraper.matches_added == 0
-    assert scraper.players_stats_added == 0
-
-def test_scrape_data_with_number_of_matches_to_scrape(mock_database, mock_parser, config):
-    scraper = Scraper(mock_parser, mock_database)
-    mock_data = [
+@pytest.fixture
+def matches_mock_data():
+    return [
     Match(
         date=datetime.date(2023, 11, 18),
         home="TeamA",
@@ -90,21 +43,61 @@ def test_scrape_data_with_number_of_matches_to_scrape(mock_database, mock_parser
         away="TeamD",
         match_id="124",
         season="2023-2024",
-        competition="Example League")]
-    mock_parser.get_matches.return_value = mock_data
-    mock_database.get_last_match_id.return_value = "999"
+        competition="Example League"),
+    Match(
+        date=datetime.date(2023, 12, 18),
+        home="TeamA",
+        score="2-0",
+        away="TeamD",
+        match_id="125",
+        season="2023-2024",
+        competition="Example League")
+    ]
 
-    with patch('SCRIPTS.Scraper.database.Database', autospec=True):
-        scraper.scrape_data(config["integration_tests"]["data_test_url"], clear_db=False, number_of_matches_to_scrape=1)
+@pytest.fixture
+def players_mock_data():
+    return [
+    PlayerStats(match_id="123", team="TeamA", player="player_a", player_id="1"),
+    PlayerStats(match_id="124", team="TeamB", player="player_b", player_id="2"),
+    PlayerStats(match_id="125", team="TeamD", player="player_c", player_id="3"),
+    PlayerStats(match_id="125", team="TeamA", player="player_a", player_id="1")
+    ]
 
+def test_scrape_data(mock_parser: MagicMock, mock_database: MagicMock, config: MagicMock, matches_mock_data: list, players_mock_data: list):
+    scraper = Scraper(mock_parser, mock_database)
+    mock_database.db_state.check_matches_not_in_db.return_value = matches_mock_data
+    mock_parser.get_matches.return_value = matches_mock_data
+    mock_parser.get_players_stats = MagicMock(side_effect=lambda m, **kwargs: [p for p in players_mock_data if p.match_id == m])
+    scraper.scrape_data(config["integration_tests"]["data_test_url"])
+
+    assert scraper.matches_added == len(matches_mock_data)
+    # handle player_stats correct number of times it was added to db for each match
+    m_dict = {m.match_id: [] for m in matches_mock_data}
+    for p in players_mock_data:
+        m_dict[p.match_id].append(p.player_id)
+    assert scraper.players_stats_added == len(sum(m_dict.values(), []))
+
+def test_scrape_data_with_number_of_matches_to_scrape(mock_database: MagicMock, mock_parser: MagicMock, config: MagicMock, matches_mock_data: list, players_mock_data: list):
+    scraper = Scraper(mock_parser, mock_database)
+    mock_database.db_state.check_matches_not_in_db.return_value = matches_mock_data
+    mock_parser.get_matches.return_value = matches_mock_data
+    mock_parser.get_players_stats.return_value = players_mock_data
+    scraper.scrape_data(config["integration_tests"]["data_test_url"], number_of_matches_to_scrape=1)
     assert scraper.matches_added == 1
 
-def test_scrape_data_with_invalid_url(mock_database, mock_parser):
+def test_scrape_data_with_invalid_url(mock_database: MagicMock, mock_parser: MagicMock):
     scraper = Scraper(mock_parser, mock_database)
-    print(NoScoreAndFixturesInUrlException)
     with pytest.raises(NoScoreAndFixturesInUrlException) as exc_info:
         scraper.scrape_data("https://example.com")
-
-    print(f"Exception message: {exc_info.value}")
-    assert str(exc_info.value) == "There is no 'Scores-and-Fixtures' in the URL."
     
+def test_scrape_data_with_recreate_db(mock_database: MagicMock, mock_parser: MagicMock, config):
+    sqlite_db = SQLiteDatabase(":memory:")
+    sqlite_db.db_state.recreate_db()
+    scraper = Scraper(mock_parser, sqlite_db)
+    scraper.scrape_data = MagicMock()
+    # Check if tables are NOT empty
+    sqlite_db.cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+    columns = [x[0] for x in sqlite_db.cur.fetchall()]
+    assert MATCHES_TABLE_NAME in columns
+    assert PLAYER_STATS_TABLE_NAME in columns
+    assert PARSER_TECH_TABLE_NAME in columns

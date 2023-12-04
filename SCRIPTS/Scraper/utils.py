@@ -8,5 +8,6 @@ type_mapping = {
     int: 'INTEGER',
     str: 'TEXT',
     datetime.date: 'DATE',
+    datetime.datetime: 'DATETIME',
     float: 'REAL'
 }

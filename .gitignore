@@ -1,5 +1,5 @@
 .venv
 .vscode
-prototype.ipynb
 football_db_prod.db
 **/__pycache__/
+**.sql

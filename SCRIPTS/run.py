@@ -1,16 +1,10 @@
-from Scraper.scraper import Scraper
-from Scraper.database import SQLiteDatabase
-from Scraper.config import Config
-from Scraper.api_consumer import APIConsumer
-from Scraper.parser import Parser
-
-
 def main():
-    """ 
-    Valid URL should contain 'Scores-and-Fixtures' like: 
-    https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures
-    https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures
-    """
+    from Scraper.scraper import Scraper
+    from Scraper.database import SQLiteDatabase
+    from Scraper.config import Config
+    from Scraper.api_consumer import APIConsumer
+    from Scraper.parser import Parser
+
     config_file = "config.yaml"
     db_name = "football_db_prod.db"
 
@@ -20,11 +14,20 @@ def main():
     parser = Parser(api_consumer, config)
     scraper = Scraper(parser, db)
 
+    if config["recreate_db"]:
+        db.db_state.recreate_db()
+
     urls = [
         "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures"
         ]
-    for url in urls:
-        scraper.scrape_data(url=url, clear_db=True, number_of_matches_to_scrape=5)
-
+    try:
+        for url in urls:
+            scraper.scrape_data(url=url, number_of_matches_to_scrape=1)
+    except Exception as e:
+        raise e
+    finally:
+        if db:
+            db.con.close()
+            
 if __name__ == "__main__":
     main()
