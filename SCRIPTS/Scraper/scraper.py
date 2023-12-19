@@ -51,19 +51,21 @@ class Scraper:
         3. Processes the data.
         4. Insert data into db.
         """
-
+        logger.info(f"Processing from {url}")
         if "Scores-and-Fixtures" not in url:
             raise NoScoreAndFixturesInUrlException
 
         try:
             match_data_from_url = self.parser.get_matches(url, db=self.db)
             match_data = self.db.db_state.check_matches_not_in_db(match_data_from_url)
-            logger.info(f"There will be {number_of_matches_to_scrape if number_of_matches_to_scrape and len(match_data) < number_of_matches_to_scrape else len(match_data)} matches to process on {url}")
+            logger.info(f"There are {len(match_data)}/{len(match_data_from_url)} to process. The rest already in db.")
+            logger.info(f"There will be {number_of_matches_to_scrape if number_of_matches_to_scrape and len(match_data) < number_of_matches_to_scrape else len(match_data)} matches to process.")
             if match_data:
                 self._process_matches(match_data, number_of_matches_to_scrape)
         except Exception as e:
             logger.exception(f"Expection occured in scraper.scrape_data", exc_info=True)
         finally:
-            logger.info(f"{self.matches_added}/{self.parser.match_processed} matches added")
-            logger.info(f"{self.players_stats_added}/{self.parser.player_stats_processed} players stats added")
-            logger.info(f"Total api calls: {self.parser.api_consumer.api_calls}")
+            if len(match_data) >= 1:
+                logger.info(f"{self.matches_added}/{self.parser.match_processed} matches added")
+                logger.info(f"{self.players_stats_added}/{self.parser.player_stats_processed} players stats added")
+                logger.info(f"Total api calls: {self.parser.api_consumer.api_calls}")

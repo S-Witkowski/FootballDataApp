@@ -18,11 +18,26 @@ def main():
         db.db_state.recreate_db()
 
     urls = [
-        "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures"
+        # ligues
+        "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/12/schedule/La-Liga-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/11/schedule/Serie-A-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/20/schedule/Bundesliga-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/13/schedule/Ligue-1-Scores-and-Fixtures",
+        # uefa competitions
+        "https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/19/schedule/Europa-League-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/882/schedule/Europa-Conference-League-Scores-and-Fixtures",
+        # domestic cups
+        "https://fbref.com/en/comps/514/schedule/FA-Cup-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/569/schedule/Copa-del-Rey-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/521/schedule/DFB-Pokal-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/518/schedule/Coupe-de-France-Scores-and-Fixtures",
+        "https://fbref.com/en/comps/529/schedule/Coppa-Italia-Scores-and-Fixtures"
         ]
     try:
         for url in urls:
-            scraper.scrape_data(url=url, number_of_matches_to_scrape=1)
+            scraper.scrape_data(url=url)
     except Exception as e:
         raise e
     finally:
