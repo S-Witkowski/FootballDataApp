@@ -36,22 +36,25 @@ python run.py
  
 Code below will get whole data for Champions League and Premier League from present season:
  ```
- def main():
-    """ 
-    Valid URL should contain 'Scores-and-Fixtures' like: 
-    https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures
-    https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures
-    """
+ config_file = "config.yaml"
+ db_name = "football_db_prod.db"
 
-    s = Scraper()
-    urls = [
-        "https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures",
-        "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures"
-        ]
-    for url in urls:
-        s.scrape_data(url=url)
+ config = Config(config_file).load_config()
+ db = SQLiteDatabase(db_name=db_name)
+ api_consumer = APIConsumer(config)
+ parser = Parser(api_consumer, config)
+ scraper = Scraper(parser, db)
+
+ if config["recreate_db"]:
+     db.db_state.recreate_db()
+
+ urls = [
+     "https://fbref.com/en/comps/8/schedule/Champions-League-Scores-and-Fixtures",
+     "https://fbref.com/en/comps/9/schedule/Premier-League-Scores-and-Fixtures"
+     ]
+ for url in urls:
+     s.scrape_data(url=url)
 ```
- 
  
 <br>
 Example matches data:
