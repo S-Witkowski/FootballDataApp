@@ -1,11 +1,12 @@
 import pytest
-from Scraper.database import SQLiteDatabase
+from Scraper.database import BasicDatabase, SQLiteDatabaseConnection
 from Scraper.models import Match, PlayerStats
 from Scraper.constants import MATCHES_TABLE_NAME, PLAYER_STATS_TABLE_NAME
 
 @pytest.fixture
 def sqlite_db():
-    return SQLiteDatabase(":memory:")
+    db_conn = SQLiteDatabaseConnection(":memory:")
+    return BasicDatabase(db_conn)
 
 def test_create_matches_table(sqlite_db):
     sqlite_db.create_table(Match, MATCHES_TABLE_NAME)

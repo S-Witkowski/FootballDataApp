@@ -1,10 +1,10 @@
 from typing import List, Union
 from tqdm import tqdm
 
-from Scraper.models import Match, PlayerStats, ParserTech
+from Scraper.models import Match, PlayerStats
 from Scraper.errors import NoScoreAndFixturesInUrlException
 from Scraper.logger import logger
-from Scraper.database import DatabaseExtended
+from Scraper.database import Database
 from Scraper.parser import Parser
 from Scraper.constants import MATCHES_TABLE_NAME, PLAYER_STATS_TABLE_NAME, PARSER_TECH_TABLE_NAME
 
@@ -12,7 +12,7 @@ from Scraper.constants import MATCHES_TABLE_NAME, PLAYER_STATS_TABLE_NAME, PARSE
         
 class Scraper:
     """Interacts with database."""
-    def __init__(self, parser: Parser, db: DatabaseExtended):
+    def __init__(self, parser: Parser, db: Database):
         self.parser = parser
         self.db = db
         self.url = "https://fbref.com/"
@@ -33,11 +33,13 @@ class Scraper:
             data = data[:number_of_matches_to_scrape]
         # Getting players stats data
         for match in tqdm(data):
+            # get and insert all players stats
             self._process_player_stats(match.match_id)
-        values = [tuple(i.model_dump().values()) for i in data]
-        cols = list(Match.get_empty_dict().keys())
-        self.db.insert_to_db(MATCHES_TABLE_NAME, cols, values)
-        self.matches_added += len(values)
+            # insert match data
+            values = [tuple(match.model_dump().values())]
+            cols = list(Match.get_empty_dict().keys())
+            self.db.insert_to_db(MATCHES_TABLE_NAME, cols, values)
+            self.matches_added += 1
 
     def scrape_data(self, url: str, number_of_matches_to_scrape: Union[int, None]=None) -> None:
         """ 
@@ -57,7 +59,7 @@ class Scraper:
 
         try:
             match_data_from_url = self.parser.get_matches(url, db=self.db)
-            match_data = self.db.db_state.check_matches_not_in_db(match_data_from_url)
+            match_data = self.db.check_matches_not_in_db(match_data_from_url)
             logger.info(f"There are {len(match_data)}/{len(match_data_from_url)} to process. The rest already in db.")
             logger.info(f"There will be {number_of_matches_to_scrape if number_of_matches_to_scrape and len(match_data) < number_of_matches_to_scrape else len(match_data)} matches to process.")
             if match_data:

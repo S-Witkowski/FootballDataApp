@@ -1,10 +1,10 @@
 import pytest
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import MagicMock
 from Scraper.scraper import Scraper
 from Scraper.models import PlayerStats, Match
 from Scraper.errors import NoScoreAndFixturesInUrlException
 from Scraper.config import Config
-from Scraper.database import SQLiteDatabase
+from Scraper.database import BasicDatabase, SQLiteDatabaseConnection
 from Scraper.constants import MATCHES_TABLE_NAME, PLAYER_STATS_TABLE_NAME, PARSER_TECH_TABLE_NAME
 
 import datetime 
@@ -19,10 +19,6 @@ def mock_parser():
 
 @pytest.fixture
 def mock_database():
-    return MagicMock()
-
-@pytest.fixture
-def mock_db_state():
     return MagicMock()
 
 @pytest.fixture
@@ -65,7 +61,7 @@ def players_mock_data():
 
 def test_scrape_data(mock_parser: MagicMock, mock_database: MagicMock, config: MagicMock, matches_mock_data: list, players_mock_data: list):
     scraper = Scraper(mock_parser, mock_database)
-    mock_database.db_state.check_matches_not_in_db.return_value = matches_mock_data
+    mock_database.check_matches_not_in_db.return_value = matches_mock_data
     mock_parser.get_matches.return_value = matches_mock_data
     mock_parser.get_players_stats = MagicMock(side_effect=lambda m, **kwargs: [p for p in players_mock_data if p.match_id == m])
     scraper.scrape_data(config["integration_tests"]["data_test_url"])
@@ -79,7 +75,7 @@ def test_scrape_data(mock_parser: MagicMock, mock_database: MagicMock, config: M
 
 def test_scrape_data_with_number_of_matches_to_scrape(mock_database: MagicMock, mock_parser: MagicMock, config: MagicMock, matches_mock_data: list, players_mock_data: list):
     scraper = Scraper(mock_parser, mock_database)
-    mock_database.db_state.check_matches_not_in_db.return_value = matches_mock_data
+    mock_database.check_matches_not_in_db.return_value = matches_mock_data
     mock_parser.get_matches.return_value = matches_mock_data
     mock_parser.get_players_stats.return_value = players_mock_data
     scraper.scrape_data(config["integration_tests"]["data_test_url"], number_of_matches_to_scrape=1)
@@ -90,9 +86,10 @@ def test_scrape_data_with_invalid_url(mock_database: MagicMock, mock_parser: Mag
     with pytest.raises(NoScoreAndFixturesInUrlException) as exc_info:
         scraper.scrape_data("https://example.com")
     
-def test_scrape_data_with_recreate_db(mock_database: MagicMock, mock_parser: MagicMock, config):
-    sqlite_db = SQLiteDatabase(":memory:")
-    sqlite_db.db_state.recreate_db()
+def test_scrape_data_with_recreate_db(mock_parser: MagicMock):
+    db_conn = SQLiteDatabaseConnection(":memory:")
+    sqlite_db = BasicDatabase(db_conn)
+    sqlite_db.recreate_db()
     scraper = Scraper(mock_parser, sqlite_db)
     scraper.scrape_data = MagicMock()
     # Check if tables are NOT empty

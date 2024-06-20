@@ -1,4 +1,3 @@
-import pytest
 import datetime
 
 from Scraper.models import Match, PlayerStats, ParserTech

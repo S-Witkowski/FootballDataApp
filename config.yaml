@@ -16,3 +16,10 @@ integration_tests:
   test_match_id: 3a6836b4
 
 recreate_db: false
+
+azure_connection:
+  driver: ODBC Driver 18 for SQL Server
+  server: tcp:fda.database.windows.net,1433
+  db_name: FootballDataAppDb
+  azure_uid: azure_uid
+  azure_pwd: azure_pwd

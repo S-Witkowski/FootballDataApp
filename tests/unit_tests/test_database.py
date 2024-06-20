@@ -1,14 +1,13 @@
 import pytest
 from unittest.mock import MagicMock
-from Scraper.database import SQLiteDatabase
+from Scraper.database import BasicDatabase, SQLiteDatabaseConnection
 from Scraper.models import Match
-from Scraper.constants import MATCHES_TABLE_NAME, PLAYER_STATS_TABLE_NAME, PARSER_TECH_TABLE_NAME
-
 import datetime 
 
 @pytest.fixture
 def sqlite_db():
-    return SQLiteDatabase(":memory:")
+    db_conn = SQLiteDatabaseConnection(":memory:")
+    return BasicDatabase(db_conn)
 
 @pytest.fixture
 def mock_database():
@@ -36,12 +35,12 @@ def matches_mock_data():
     ]
 
 def test_check_matches_not_in_db(sqlite_db: MagicMock, matches_mock_data: list):
-    sqlite_db.db_state.get_custom_query = MagicMock(return_value=[("123",)])
+    sqlite_db.get_custom_query = MagicMock(return_value=[("123",)])
     result = sqlite_db.check_matches_not_in_db(matches_mock_data)
     assert result == [m for m in matches_mock_data if m.match_id != "123"]
 
 def test_check_matches_not_in_db_empty_db(sqlite_db: MagicMock, matches_mock_data: list):
-    sqlite_db.db_state.get_custom_query = MagicMock(return_value=[])
+    sqlite_db.get_custom_query = MagicMock(return_value=[])
     result = sqlite_db.check_matches_not_in_db(matches_mock_data)
     assert result == matches_mock_data
 

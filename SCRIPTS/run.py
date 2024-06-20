@@ -1,21 +1,32 @@
 def main():
     from Scraper.scraper import Scraper
-    from Scraper.database import SQLiteDatabase
+    from Scraper.database import SQLiteDatabaseConnection, AzureSQLDatabaseConnection, AzureDatabase, BasicDatabase
     from Scraper.config import Config
     from Scraper.api_consumer import APIConsumer
     from Scraper.parser import Parser
+    import os 
 
     config_file = "config.yaml"
-    db_name = "football_db_prod.db"
-
     config = Config(config_file).load_config()
-    db = SQLiteDatabase(db_name=db_name)
+
+    db_connection = AzureSQLDatabaseConnection(
+        config["azure_connection"]["driver"],
+        config["azure_connection"]["server"],
+        config["azure_connection"]["db_name"],
+        os.getenv(config["azure_connection"]["azure_uid"]),
+        os.getenv(config["azure_connection"]["azure_pwd"])
+        )
+    db = AzureDatabase(db_connection)
+    
+    # db_connection = SQLiteDatabaseConnection("football_db_prod.db")
+    # db = BasicDatabase(db_connection)
+   
     api_consumer = APIConsumer(config)
     parser = Parser(api_consumer, config)
     scraper = Scraper(parser, db)
 
     if config["recreate_db"]:
-        db.db_state.recreate_db()
+        db.recreate_db()
 
     urls = [
         # ligues
@@ -37,7 +48,7 @@ def main():
         ]
     try:
         for url in urls:
-            scraper.scrape_data(url=url)
+            scraper.scrape_data(url)
     except Exception as e:
         raise e
     finally:
